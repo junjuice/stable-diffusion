@@ -120,7 +120,7 @@ class ResnetBlock(nn.Module):
                                                     stride=1,
                                                     padding=0)
 
-    def forward(self, x, temb):
+    def forward(self, x, temb=None):
         h = x
         h = self.norm1(h)
         h = nonlinearity(h)
@@ -161,6 +161,13 @@ def apply_wavemix(self: ResnetBlock, level: int, **kwargs):
     self.conv2 = nn.Sequential(self.conv2, 
                                wavemodule(final_dim=self.conv2.out_channels, dropout=self.dropout.p, **kwargs)
                                )
+    return self
+
+
+def undo_wavemix(self: ResnetBlock):
+    assert type(self.conv1) == type(self.conv2) == nn.Sequential
+    self.conv1 = self.conv1._modules["0"]
+    self.conv2 = self.conv2._modules["0"]
     return self
 
 
