@@ -142,25 +142,26 @@ class ResnetBlock(nn.Module):
 
         return x+h
     
-class WaveResBlock(ResnetBlock):
-    def apply_wavemix(self, level: int, **kwargs):
-        assert level <= 4
-        if level == 1:
-            wavemodule = Level1Waveblock
-        elif level == 2:
-            wavemodule = Level2Waveblock
-        elif level == 3:
-            wavemodule = Level3Waveblock
-        elif level == 4:
-            wavemodule = Level4Waveblock
-        else:
-            raise NotImplementedError
-        self.conv1 = nn.Sequential(self.conv1, 
-                                   wavemodule(final_dim=self.conv1.out_channels, dropout=self.dropout.p, **kwargs)
-                                   )
-        self.conv2 = nn.Sequential(self.conv2, 
-                                   wavemodule(final_dim=self.conv2.out_channels, dropout=self.dropout.p, **kwargs)
-                                   )
+
+def apply_wavemix(self: ResnetBlock, level: int, **kwargs):
+    assert level <= 4
+    if level == 1:
+        wavemodule = Level1Waveblock
+    elif level == 2:
+        wavemodule = Level2Waveblock
+    elif level == 3:
+        wavemodule = Level3Waveblock
+    elif level == 4:
+        wavemodule = Level4Waveblock
+    else:
+        raise NotImplementedError
+    self.conv1 = nn.Sequential(self.conv1, 
+                               wavemodule(final_dim=self.conv1.out_channels, dropout=self.dropout.p, **kwargs)
+                               )
+    self.conv2 = nn.Sequential(self.conv2, 
+                               wavemodule(final_dim=self.conv2.out_channels, dropout=self.dropout.p, **kwargs)
+                               )
+    return self
 
 
 class LinAttnBlock(LinearAttention):
