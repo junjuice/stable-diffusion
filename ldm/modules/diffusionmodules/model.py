@@ -8,6 +8,8 @@ from einops import rearrange
 from ldm.util import instantiate_from_config
 from ldm.modules.attention import LinearAttention
 
+from wavemix import Level1Waveblock, Level2Waveblock, Level3Waveblock, Level4Waveblock
+
 
 def get_timestep_embedding(timesteps, embedding_dim):
     """
@@ -139,6 +141,23 @@ class ResnetBlock(nn.Module):
                 x = self.nin_shortcut(x)
 
         return x+h
+    
+class WaveResBlock(ResnetBlock):
+    def apply_wavemix(self, level: int, **kwargs):
+        assert level <= 4
+        if level == 1:
+            wavemodule = Level1Waveblock
+        elif level == 2:
+            wavemodule = Level2Waveblock
+        elif level == 3:
+            wavemodule = Level3Waveblock
+        elif level == 4:
+            wavemodule = Level4Waveblock
+        else:
+            raise NotImplementedError
+        self.conv1 = wavemodule(final_dim=self.out_channels, dropout=self.dropout.p, **kwargs)
+        self.conv2 = wavemodule(final_dim=self.out_channels, dropout=self.dropout.p, **kwargs)
+
 
 
 class LinAttnBlock(LinearAttention):
