@@ -297,6 +297,7 @@ class AutoencoderKL(pl.LightningModule):
                  embed_dim,
                  ckpt_path=None,
                  ignore_keys=[],
+                 decoder_only=False,
                  image_key="image",
                  colorize_nlabels=None,
                  monitor=None,
@@ -304,6 +305,7 @@ class AutoencoderKL(pl.LightningModule):
                  ):
         super().__init__()
         self.image_key = image_key
+        self.decoder_only = decoder_only
         self.encoder = Encoder(**ddconfig) if not use_different_config else Encoder(**ddconfig["encoder"])
         self.decoder = Decoder(**ddconfig) if not use_different_config else Decoder(**ddconfig["decoder"])
         self.loss = instantiate_from_config(lossconfig)
@@ -394,11 +396,16 @@ class AutoencoderKL(pl.LightningModule):
 
     def configure_optimizers(self):
         lr = self.learning_rate
-        opt_ae = torch.optim.Adam(list(self.encoder.parameters())+
-                                  list(self.decoder.parameters())+
-                                  list(self.quant_conv.parameters())+
-                                  list(self.post_quant_conv.parameters()),
-                                  lr=lr, betas=(0.5, 0.9))
+        if self.decoder_only:
+            opt_ae = torch.optim.Adam(list(self.decoder.parameters())+
+                                      list(self.post_quant_conv.parameters()),
+                                      lr=lr, betas=(0.5, 0.9))
+        else:
+            opt_ae = torch.optim.Adam(list(self.encoder.parameters())+
+                                      list(self.decoder.parameters())+
+                                      list(self.quant_conv.parameters())+
+                                      list(self.post_quant_conv.parameters()),
+                                      lr=lr, betas=(0.5, 0.9))
         opt_disc = torch.optim.Adam(self.loss.discriminator.parameters(),
                                     lr=lr, betas=(0.5, 0.9))
         return [opt_ae, opt_disc], []

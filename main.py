@@ -19,7 +19,7 @@ from pytorch_lightning.utilities import rank_zero_info
 
 from ldm.data.base import Txt2ImgIterableBaseDataset
 from ldm.util import instantiate_from_config
-
+from ldm.models.autoencoder import AutoencoderKL
 
 def get_parser(**parser_kwargs):
     def str2bool(v):
@@ -533,7 +533,7 @@ if __name__ == "__main__":
 
         # model
         model = instantiate_from_config(config.model)
-
+        
         # trainer and callbacks
         trainer_kwargs = dict()
 
@@ -712,6 +712,11 @@ if __name__ == "__main__":
 
         signal.signal(signal.SIGUSR1, melk)
         signal.signal(signal.SIGUSR2, divein)
+
+        if type(model) == AutoencoderKL:
+            if model.decoder_only:
+                model.encoder.requires_grad_(False)
+                model.quant_conv.requires_grad_(False)
 
         # run
         if opt.train:
