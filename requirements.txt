@@ -5,3 +5,4 @@ einops
 PyWavelets
 omegaconf
 academictorrents
+albumentations

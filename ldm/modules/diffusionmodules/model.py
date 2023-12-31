@@ -144,9 +144,10 @@ class ResnetBlock(nn.Module):
     
 class WavemixAttn(nn.Module):
     def __init__(self, wavemodule: nn.Module):
+        super().__init__()
         self.wavemix = wavemodule
     
-    def forward(self, x):
+    def forward(self, x, temb=None):
         return self.wavemix(x) + x
 
 def get_wavemix(level: int, in_ch: int, **kwargs):
@@ -225,7 +226,7 @@ class AttnBlock(nn.Module):
         return x+h_
 
 
-def make_attn(in_channels, attn_type="vanilla", level: int = 3):
+def make_attn(in_channels, attn_type="vanilla", level: int = 3, **kwargs):
     assert attn_type in ["vanilla", "linear", "wavemix", "none"], f'attn_type {attn_type} unknown'
     print(f"making attention of type '{attn_type}' with {in_channels} in_channels")
     if attn_type == "vanilla":
@@ -233,7 +234,7 @@ def make_attn(in_channels, attn_type="vanilla", level: int = 3):
     elif attn_type == "none":
         return nn.Identity(in_channels)
     elif attn_type == "wavemix":
-        return get_wavemix(level, in_channels)
+        return get_wavemix(level, in_channels, **kwargs)
     else:
         return LinAttnBlock(in_channels)
 
@@ -521,7 +522,7 @@ class Decoder(nn.Module):
                                        out_channels=block_in,
                                        temb_channels=self.temb_ch,
                                        dropout=dropout)
-        self.mid.attn_1 = make_attn(block_in, attn_type=attn_type, level=wavemix_first_level)
+        self.mid.attn_1 = make_attn(block_in, attn_type=attn_type, level=wavemix_first_level, dropout=dropout)
         self.mid.block_2 = ResnetBlock(in_channels=block_in,
                                        out_channels=block_in,
                                        temb_channels=self.temb_ch,
@@ -535,7 +536,7 @@ class Decoder(nn.Module):
             block_out = ch*ch_mult[i_level]
             for i_block in range(self.num_res_blocks+1):
                 if block_in == block_out and attn_type == "wavemix":
-                    block.append(make_attn(block_in, attn_type, level=wavemix_level))
+                    block.append(make_attn(block_in, attn_type, level=wavemix_level, dropout=dropout))
                 else:
                     block.append(ResnetBlock(in_channels=block_in,
                                             out_channels=block_out,
@@ -543,7 +544,7 @@ class Decoder(nn.Module):
                                             dropout=dropout))
                 block_in = block_out
                 if curr_res in attn_resolutions:
-                    attn.append(make_attn(block_in, attn_type=attn_type))
+                    attn.append(make_attn(block_in, attn_type=attn_type, level=wavemix_level, dropout=dropout))
             up = nn.Module()
             up.block = block
             up.attn = attn

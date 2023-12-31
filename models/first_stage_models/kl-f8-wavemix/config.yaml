@@ -12,6 +12,21 @@ model:
         kl_weight: 1.0e-06
         disc_weight: 0.5
     ddconfig:
+      double_z: true
+      z_channels: 4
+      resolution: 256
+      in_channels: 3
+      out_ch: 3
+      ch: 128
+      ch_mult:
+      - 1
+      - 2
+      - 4
+      - 4
+      num_res_blocks: 2
+      attn_resolutions: []
+      dropout: 0.0
+
       encoder:
         double_z: true
         z_channels: 4
@@ -27,6 +42,7 @@ model:
         num_res_blocks: 2
         attn_resolutions: []
         dropout: 0.0
+        
       decoder:
         double_z: true
         z_channels: 4
@@ -48,15 +64,28 @@ model:
 data:
   target: main.DataModuleFromConfig
   params:
-    batch_size: 4
-    wrap: true
+    batch_size: 12
+    wrap: True
     train:
-      target: ldm.data.openimages.FullOpenImagesTrain
+      target: ldm.data.imagenet.ImageNetSRTrain
       params:
-        size: 384
-        crop_size: 256
+        size: 256
+        degradation: pil_nearest
     validation:
-      target: ldm.data.openimages.FullOpenImagesValidation
+      target: ldm.data.imagenet.ImageNetSRValidation
       params:
-        size: 384
-        crop_size: 256
+        size: 256
+        degradation: pil_nearest
+
+lightning:
+  callbacks:
+    image_logger:
+      target: main.ImageLogger
+      params:
+        batch_frequency: 1000
+        max_images: 8
+        increase_log_steps: True
+
+  trainer:
+    benchmark: True
+    accumulate_grad_batches: 2
