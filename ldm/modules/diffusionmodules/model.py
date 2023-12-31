@@ -155,9 +155,12 @@ class WaveResBlock(ResnetBlock):
             wavemodule = Level4Waveblock
         else:
             raise NotImplementedError
-        self.conv1 = wavemodule(final_dim=self.out_channels, dropout=self.dropout.p, **kwargs)
-        self.conv2 = wavemodule(final_dim=self.out_channels, dropout=self.dropout.p, **kwargs)
-
+        self.conv1 = nn.Sequential(self.conv1, 
+                                   wavemodule(final_dim=self.conv1.out_channels, dropout=self.dropout.p, **kwargs)
+                                   )
+        self.conv2 = nn.Sequential(self.conv2, 
+                                   wavemodule(final_dim=self.conv2.out_channels, dropout=self.dropout.p, **kwargs)
+                                   )
 
 
 class LinAttnBlock(LinearAttention):
