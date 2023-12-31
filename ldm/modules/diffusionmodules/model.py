@@ -142,8 +142,14 @@ class ResnetBlock(nn.Module):
 
         return x+h
     
+class WavemixAttn(nn.Module):
+    def __init__(self, wavemodule: nn.Module):
+        self.wavemix = wavemodule
+    
+    def forward(self, x):
+        return self.wavemix(x) + x
 
-def apply_wavemix(self: ResnetBlock, level: int, **kwargs):
+def get_wavemix(level: int, in_ch: int, **kwargs):
     assert level <= 4
     if level == 1:
         wavemodule = Level1Waveblock
@@ -155,20 +161,7 @@ def apply_wavemix(self: ResnetBlock, level: int, **kwargs):
         wavemodule = Level4Waveblock
     else:
         raise NotImplementedError
-    self.conv1 = nn.Sequential(self.conv1, 
-                               wavemodule(final_dim=self.conv1.out_channels, dropout=self.dropout.p, **kwargs)
-                               )
-    self.conv2 = nn.Sequential(self.conv2, 
-                               wavemodule(final_dim=self.conv2.out_channels, dropout=self.dropout.p, **kwargs)
-                               )
-    return self
-
-
-def undo_wavemix(self: ResnetBlock):
-    assert type(self.conv1) == type(self.conv2) == nn.Sequential
-    self.conv1 = self.conv1._modules["0"]
-    self.conv2 = self.conv2._modules["0"]
-    return self
+    return WavemixAttn(wavemodule(mult=2, ff_channel=in_ch, final_dim=in_ch, **kwargs))
 
 
 class LinAttnBlock(LinearAttention):
@@ -232,13 +225,15 @@ class AttnBlock(nn.Module):
         return x+h_
 
 
-def make_attn(in_channels, attn_type="vanilla"):
-    assert attn_type in ["vanilla", "linear", "none"], f'attn_type {attn_type} unknown'
+def make_attn(in_channels, attn_type="vanilla", level: int = 3):
+    assert attn_type in ["vanilla", "linear", "wavemix", "none"], f'attn_type {attn_type} unknown'
     print(f"making attention of type '{attn_type}' with {in_channels} in_channels")
     if attn_type == "vanilla":
         return AttnBlock(in_channels)
     elif attn_type == "none":
         return nn.Identity(in_channels)
+    elif attn_type == "wavemix":
+        return get_wavemix(level, in_channels)
     else:
         return LinAttnBlock(in_channels)
 
@@ -493,7 +488,7 @@ class Decoder(nn.Module):
     def __init__(self, *, ch, out_ch, ch_mult=(1,2,4,8), num_res_blocks,
                  attn_resolutions, dropout=0.0, resamp_with_conv=True, in_channels,
                  resolution, z_channels, give_pre_end=False, tanh_out=False, use_linear_attn=False,
-                 attn_type="vanilla", **ignorekwargs):
+                 attn_type="vanilla", wavemix_level=3, wavemix_first_level=1, **ignorekwargs):
         super().__init__()
         if use_linear_attn: attn_type = "linear"
         self.ch = ch
@@ -526,7 +521,7 @@ class Decoder(nn.Module):
                                        out_channels=block_in,
                                        temb_channels=self.temb_ch,
                                        dropout=dropout)
-        self.mid.attn_1 = make_attn(block_in, attn_type=attn_type)
+        self.mid.attn_1 = make_attn(block_in, attn_type=attn_type, level=wavemix_first_level)
         self.mid.block_2 = ResnetBlock(in_channels=block_in,
                                        out_channels=block_in,
                                        temb_channels=self.temb_ch,
@@ -539,10 +534,13 @@ class Decoder(nn.Module):
             attn = nn.ModuleList()
             block_out = ch*ch_mult[i_level]
             for i_block in range(self.num_res_blocks+1):
-                block.append(ResnetBlock(in_channels=block_in,
-                                         out_channels=block_out,
-                                         temb_channels=self.temb_ch,
-                                         dropout=dropout))
+                if block_in == block_out and attn_type == "wavemix":
+                    block.append(make_attn(block_in, attn_type, level=wavemix_level))
+                else:
+                    block.append(ResnetBlock(in_channels=block_in,
+                                            out_channels=block_out,
+                                            temb_channels=self.temb_ch,
+                                            dropout=dropout))
                 block_in = block_out
                 if curr_res in attn_resolutions:
                     attn.append(make_attn(block_in, attn_type=attn_type))

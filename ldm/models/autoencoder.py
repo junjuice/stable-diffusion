@@ -300,11 +300,12 @@ class AutoencoderKL(pl.LightningModule):
                  image_key="image",
                  colorize_nlabels=None,
                  monitor=None,
+                 use_different_config=False
                  ):
         super().__init__()
         self.image_key = image_key
-        self.encoder = Encoder(**ddconfig)
-        self.decoder = Decoder(**ddconfig)
+        self.encoder = Encoder(**ddconfig) if not use_different_config else Encoder(**ddconfig["encoder"])
+        self.decoder = Decoder(**ddconfig) if not use_different_config else Decoder(**ddconfig["decoder"])
         self.loss = instantiate_from_config(lossconfig)
         assert ddconfig["double_z"]
         self.quant_conv = torch.nn.Conv2d(2*ddconfig["z_channels"], 2*embed_dim, 1)
