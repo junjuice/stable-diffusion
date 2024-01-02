@@ -24,10 +24,9 @@ def download(url: str, fname: str, chunk_size=1024):
             bar.update(size)
 
 class MydatasetBase(Dataset):
-    def __init__(self, size: int = 256, path="./data/mydataset", transform=transforms.Compose([])):
+    def __init__(self, size: int = 256, path="./data/mydataset/", transform=transforms.Compose([])):
         url = "https://huggingface.co/datasets/junjuice0/28k/resolve/main/data.zip"
-        path = path.removesuffix("/") + "/"
-        if not os.path.isdir(path+"data"):
+        if not os.path.isfile(path+"/data/000000003.png"):
             os.makedirs(path, exist_ok=True)
             print("Downloading data file...")
             download(url, path+"data.zip")
