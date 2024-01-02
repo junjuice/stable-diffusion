@@ -6,6 +6,8 @@ model:
     embed_dim: 4
     use_different_config: True
     decoder_only: True
+    ckpt_path: ./vae-ft-mse-840000-ema-pruned.ckpt
+    ckpt_url: https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.ckpt
     ignore_keys: [decoder]
     lossconfig:
       target: ldm.modules.losses.LPIPSWithDiscriminator

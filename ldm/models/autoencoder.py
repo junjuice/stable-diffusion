@@ -18,6 +18,23 @@ import numpy as np
 
 from packaging import version
 
+import os
+import requests
+import tqdm
+
+def download(url: str, fname: str, chunk_size=1024):
+    resp = requests.get(url, stream=True)
+    total = int(resp.headers.get('content-length', 0))
+    with open(fname, 'wb') as file, tqdm.tqdm(
+        desc=fname,
+        total=total,
+        unit='iB',
+        unit_scale=True,
+        unit_divisor=1024,
+    ) as bar:
+        for data in resp.iter_content(chunk_size=chunk_size):
+            size = file.write(data)
+            bar.update(size)
 
 class VQModel(pl.LightningModule):
     def __init__(self,
@@ -296,6 +313,7 @@ class AutoencoderKL(pl.LightningModule):
                  lossconfig,
                  embed_dim,
                  ckpt_path=None,
+                 ckpt_url=None,
                  ignore_keys=[],
                  decoder_only=False,
                  image_key="image",
@@ -319,6 +337,10 @@ class AutoencoderKL(pl.LightningModule):
         if monitor is not None:
             self.monitor = monitor
         if ckpt_path is not None:
+            if ckpt_url is not None:
+                if os.path.isfile(ckpt_path):
+                    print("Downloading", ckpt_url)
+                    download(ckpt_url, ckpt_path)
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
 
     def init_from_ckpt(self, path, ignore_keys=list()):
