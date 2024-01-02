@@ -338,7 +338,7 @@ class AutoencoderKL(pl.LightningModule):
             self.monitor = monitor
         if ckpt_path is not None:
             if ckpt_url is not None:
-                if os.path.isfile(ckpt_path):
+                if not os.path.isfile(ckpt_path):
                     print("Downloading", ckpt_url)
                     download(ckpt_url, ckpt_path)
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)

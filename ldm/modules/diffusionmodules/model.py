@@ -534,8 +534,9 @@ class Decoder(nn.Module):
             block = nn.ModuleList()
             attn = nn.ModuleList()
             block_out = ch*ch_mult[i_level]
+            wavemixed = False
             for i_block in range(self.num_res_blocks+1):
-                if block_in == block_out and attn_type == "wavemix":
+                if block_in == block_out and attn_type == "wavemix" and not wavemixed:
                     block.append(make_attn(block_in, attn_type, level=wavemix_level, dropout=dropout))
                 else:
                     block.append(ResnetBlock(in_channels=block_in,

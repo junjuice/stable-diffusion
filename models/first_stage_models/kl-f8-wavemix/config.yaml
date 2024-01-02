@@ -12,7 +12,7 @@ model:
     lossconfig:
       target: ldm.modules.losses.LPIPSWithDiscriminator
       params:
-        disc_start: 50001
+        disc_start: 5001
         kl_weight: 1.0e-06
         disc_weight: 0.5
     ddconfig:
@@ -56,19 +56,20 @@ model:
         ch: 128
         ch_mult:
         - 1
+        - 1
         - 2
         - 4
         - 4
         num_res_blocks: 2
         attn_type: wavemix
-        wavemix_level: 3
+        wavemix_level: 2
         attn_resolutions: []
         dropout: 0.0
 
 data:
   target: main.DataModuleFromConfig
   params:
-    batch_size: 12
+    batch_size: 16
     wrap: True
     train:
       target: ldm.data.mydataset.MydatasetTrain
@@ -90,4 +91,4 @@ lightning:
 
   trainer:
     benchmark: True
-    accumulate_grad_batches: 2
+    accumulate_grad_batches: 1
