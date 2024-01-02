@@ -11,7 +11,7 @@ import glob
 def download(url: str, fname: str, chunk_size=1024):
     resp = requests.get(url, stream=True)
     total = int(resp.headers.get('content-length', 0))
-    with open(fname, 'wb') as file, tqdm(
+    with open(fname, 'wb') as file, tqdm.tqdm(
         desc=fname,
         total=total,
         unit='iB',
@@ -27,7 +27,7 @@ class MydatasetBase(Dataset):
         url = "https://huggingface.co/datasets/junjuice0/28k/resolve/main/data.zip"
         path = path.removesuffix("/") + "/"
         if not os.path.isdir(path+"data"):
-            os.makedirs(path)
+            os.makedirs(path, exist_ok=True)
             print("Downloading data file...")
             download(url, path+"data.zip")
             print("Extracting data files...")
