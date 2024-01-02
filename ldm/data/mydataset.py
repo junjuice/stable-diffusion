@@ -7,6 +7,7 @@ import requests
 import tqdm
 import shutil
 import glob
+from typing import Sequence
 
 def download(url: str, fname: str, chunk_size=1024):
     resp = requests.get(url, stream=True)
@@ -61,3 +62,16 @@ class MydatasetBase(Dataset):
             example["caption"] = f.readlines()[1]
         return example
 
+class MydatasetTrain(MydatasetBase):
+    def __init__(self, size: int = 256, path="./data/mydataset", transform=transforms.Compose([])):
+        super().__init__(size, path, transform)
+        length = len(self)
+        indices = range(length)[:int(length*0.95)]
+        self = Subset(self, indices)
+
+class MydatasetValidation(MydatasetBase):
+    def __init__(self, size: int = 256, path="./data/mydataset", transform=transforms.Compose([])):
+        super().__init__(size, path, transform)
+        length = len(self)
+        indices = range(length)[int(length*0.95):]
+        self = Subset(self, indices)
